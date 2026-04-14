@@ -5,52 +5,67 @@ from rich.prompt import Prompt
 import pyfiglet
 from rich import print
 from rich.layout import Layout
-import func as f
 from rich.live import Live
 from rich.table import Table
+import ws
 
 layout = Layout()
-table = Table()
+table_url = Table()
+
+style_1= "White Bold"
+
+
 
 class Console:
     def __init__(self,title,version):
         self.title = title
         self.version = version
+        self.ua = {"User-Agent": "Python/3.14"}
+        self.url_inicial = "https://pt.wikipedia.org//wiki/Wikip%C3%A9dia:P%C3%A1gina_principal"
+        self.ws = ws.ws(self.url_inicial,self.ua)
+        self.console("asd","1.1")
+        #self.layout_test(title,version)
 
-        self.layout_test(title,version)
 
 
-
-
+    #teste Apgar depois de implementar no lugar certo
     def layout_test(self,t,v):
+        table_url.add_column("ID", justify="center", style=style_1,width = 10)
+        table_url.add_column("URL", justify="center", style=style_1,width = 80)
+
+
         layout.split_column(
-            Layout(name="upper"),
+            Layout(name="Historico"),
             Layout(name="Lower")
         )
         layout["Lower"].split_row(
-            Layout(name="Left"),
-            Layout(name="right")
+            Layout(name="info"),
+            Layout(name="erros",)
         )
+        layout["Historico"].split(
+            Layout(table_url)
+        )
+
         print(layout)
-        with Live(table,refresh_per_second=4):
 
 
 
 
+    #mostra o titlulo , tao inutil quanto parece
     def title_show(self,title,version):
         title = pyfiglet.figlet_format(f"{title}", font="roman")
         panel = Panel(
             Align.center(f"[bold green]{title}"),
             subtitle=f"[bold blue]V:{version} | By Yuriel Audrey[/bold blue]",
-            border_style="bold white",
+            border_style=style_1,
             padding=(1, 0)
         )
         print(panel)
 
 
-
+    #Funcao principal do console , inutil mas nao dispensavel
     def console(self,t,v):
-        ua = {"User-Agent": "Python/3.14"}
+
         self.title_show(t,v)
         print("Digite A opcao")
         print("1-Iniciar Novo")
@@ -61,17 +76,9 @@ class Console:
 
 
         if x == "1":
-            url_inicial = Prompt.ask("Digite a Url Inicial(deixe vazio para usar o wikipedia como padrao)")
-            if url_inicial == "":
-                url_inicial = "https://pt.wikipedia.org//wiki/Wikip%C3%A9dia:P%C3%A1gina_principal"
-
-
-            code , html = f.get_html(url_inicial, ua)
-            page_url, img_url = f.get_url(html)
-            f.save_url(page_url)
-
+            code, page_url, img_url  = self.ws.start_new(self.url_inicial,self.ua)
         elif x == "2":
-            pass
+            code, page_url, img_url = self.ws.start_save(self.ua)
         elif x == "3":
             pass
         else:

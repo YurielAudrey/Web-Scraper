@@ -1,14 +1,3 @@
-import os
-from time import sleep
-import requests
-from bs4 import BeautifulSoup as s
-from rich import print
-from rich.console import Console
-from rich.panel import Panel
-from rich.align import Align
-from rich.prompt import Prompt
-import pyfiglet
-from rich import print
 from rich.layout import Layout
 import Console as c
 
@@ -23,6 +12,7 @@ delay = 1
 
 
 def main():
+
     console = c.Console(title,version)
 
     pass
