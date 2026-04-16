@@ -1,5 +1,21 @@
 import requests
 from bs4 import BeautifulSoup as s
+import os
+from rich.panel import Panel
+from rich.align import Align
+from rich.prompt import Prompt
+import pyfiglet
+from rich import print
+from rich.layout import Layout
+from rich.live import Live
+from rich.table import Table
+
+#
+#Tentando Ajustar o Layout
+#
+#
+#
+
 class ws:
     def __init__(self,url_inicial="",qtd=0):
         self.url_inicial = url_inicial
@@ -19,18 +35,28 @@ class ws:
         page_url, img_url = self.get_url(html)
         return code,html,page_url,img_url
 
-    def start_new(self,url_inicial,ua):
+    def start_new(self,url_inicial,ua,table,panel):
         code,html,page_url,img_url = self.scrapper(url_inicial,ua)
+        count = 0
 
+        with Live(panel, refresh_per_second=4):
+            list_old = []
 
-        list_old = []
-        for url in page_url:
-            if url=="":
-                page_url.pop(0)
-                pass
-            self.scrapper(url,ua)
-            list_old.append(url)
-            page_url.remove(url)
+            for url in page_url:
+                if url=="":
+                    page_url.pop(0)
+                    pass
+                code,html,page_new,img_new = self.scrapper(url,ua)
+                for u in page_new:
+                    page_url.append(u)
+                    page_new.remove(u)
+                for u in img_new:
+                    img_url.append(u)
+
+                table.add_row(f"{count}",f"{url}",f"{len(page_new)}",f"{len(img_new)}")
+                list_old.append(url)
+                page_url.remove(url)
+                count = count + 1
 
         self.save_url(page_url,"url.csv")
         self.save_url(list_old, "list_old.csv")
