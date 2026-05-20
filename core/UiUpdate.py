@@ -1,7 +1,8 @@
 from textual.message import Message
 
+
 class UiUpdate(Message):
-    def __init__(self,concluida:dict,pendente:dict,total:dict,msg:list[str]):
+    def __init__(self, concluida: dict, pendente: dict, total: dict, msg):
 
         self.concluida = concluida
         self.pendente = pendente
@@ -9,4 +10,3 @@ class UiUpdate(Message):
         self.log = msg
 
         super().__init__()
-

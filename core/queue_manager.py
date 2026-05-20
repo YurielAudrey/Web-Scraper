@@ -12,46 +12,54 @@ class queue_manager:
         self.vid_queue = queue.Queue()
         self.txt_queue = queue.Queue()
         self.last_request = 0
-        self.lock= threading.Lock()
+        self.lock = threading.Lock()
 
     def queue_to_list(self):
-        u = []
-        d = []
+        urls = []
+        imgs = []
+        vids = []
         for i in range(self.page_queue.qsize()):
-            url = self.get_url()
-            u.append(url)
+            url = self.page_queue.get()
+            urls.append(url)
 
         for i in range(self.img_queue.qsize()):
-            down = self.get_img()
-            d.append(down)
+            img = self.img_queue.get()
+            imgs.append(img)
 
-        return u,d
+        for i in range(self.vid_queue.qsize()):
+            vid = self.vid_queue.get()
+            vids.append(vid)
 
+        return urls, imgs, vids
 
-    def put_item(self,**kwargs):
-        page_list = kwargs.get('page_list',[])
-        down_list = kwargs.get('down_list',[])
+    def put_item(self, **kwargs):
+        page_list = kwargs.get("page_list", [])
+        img_list = kwargs.get("img_list", [])
+        vid_list = kwargs.get("vid_list", [])
 
-        if len(page_list)>0 :
+        if len(page_list) > 0:
             for u in page_list:
                 self.page_queue.put(u)
 
-        if len(down_list)>0 :
-            for u in down_list:
+        if len(img_list) > 0:
+            for u in img_list:
                 self.img_queue.put(u)
+        if len(vid_list) > 0:
+            for u in vid_list:
+                self.vid_queue.put(u)
 
     def delay_counter(self) -> None:
         while True:
             with self.lock:
                 agora = time.perf_counter()
-                t = agora-self.last_request
-                bl =t >= self.crawl_delay
+                t = agora - self.last_request
+                bl = t >= self.crawl_delay
                 if bl:
                     self.last_request = time.perf_counter()
                     return
             time.sleep(0.1)
 
-    def add_delay(self,delay):
+    def add_delay(self, delay):
         self.crawl_delay += delay
 
     def get_url(self):
@@ -60,18 +68,9 @@ class queue_manager:
         item = self.page_queue.get()
         return item
 
-
-    def get_img(self):
-        self.delay_counter()
-        item = self.img_queue.get()
-        return item
-
-    def get_vid(self):
-        self.delay_counter()
-        item = self.vid_queue.get()
-        return item
-
-    def get_txt(self):
-        self.delay_counter()
-        item = self.txt_queue.get()
-        return item
+    def get_file(self):
+        while True:
+            self.delay_counter()
+            yield self.img_queue.get(), "img"
+            self.delay_counter()
+            yield self.vid_queue.get(), "vid"

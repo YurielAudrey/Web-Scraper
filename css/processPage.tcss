@@ -1,0 +1,42 @@
+$cor-primaria: black;
+$cor-secundaria: gray
+
+Screen
+{
+    layout:grid;
+    grid-size:3 3;
+    grid-rows:1fr 2fr 2fr;
+
+    background: $cor-primaria;
+
+}
+.threads-container
+{
+    border:round $cor-secundaria;
+    row-span:1;
+    column-span:3;
+    margin:0;
+}
+.tables-container
+{
+    border:round $cor-secundaria;
+    row-span:1;
+    column-span:3;
+    margin:0;
+}
+
+.log-container
+{
+    border:round $cor-secundaria;
+    row-span:1;
+    column-span:3;
+    margin:0;
+}
+
+.thr-container
+{
+
+    row-span:1;
+    column-span:3;
+    margin:0;
+}

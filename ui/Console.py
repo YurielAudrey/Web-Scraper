@@ -1,20 +1,32 @@
-from textual import on ,work
-from textual.app import App, ComposeResult
-from textual.containers import Horizontal,Vertical
-from textual.widgets import Static ,Header,Footer,Rule,Label,Input,Button,Checkbox,SelectionList
-import core.storage_handler as sh
-from core import engine as e
+import os
+import requests
+from requests import Request
 
-from textual.screen import Screen
+from textual.app import App, ComposeResult
+from textual.containers import Horizontal, Vertical, Grid, Container
+from textual.widgets import (
+    Header,
+    Footer,
+    Rule,
+    Label,
+    Input,
+    Button,
+    Checkbox,
+    SelectionList,
+)
+
+import core.storage_handler as sh
+from ui.ErrorScreen import ErrorScreen
 from ui.ProcessScreen import ProcessScreen
 
-class ui(App):
+
+class Ui(App):
 
     TITLE = "Horus 1.0"
-    CSS_PATH = "layout.tcss"
-    BINDINGS =[
-            ("ctrl+s","save_quit","salvar e fechar"),
-            ("ctrl+p","pause","pausar"),
+    CSS_PATH = "../css/layout.tcss"
+    BINDINGS = [
+        ("ctrl+s", "save_quit", "salvar e fechar"),
+        ("ctrl+p", "pause", "pausar"),
     ]
     SCREENS = {
         "settings": ProcessScreen,
@@ -22,91 +34,105 @@ class ui(App):
 
     def compose(self) -> ComposeResult:
         yield Header(name="Horus", show_clock=True, classes="header")
-        yield Horizontal(
-            Vertical(
-                Rule(orientation="horizontal", line_style="solid", classes="RuleSeparador"),
-                Static("Run", classes="titleLabel_cfg"),
-                Rule(orientation="horizontal", line_style="solid", classes="RuleSeparador"),
-
-                Horizontal(
-                    Label("URL", classes="label_cfg"),
-                    Input(value="http://pt.wikipedia.org/wiki/",placeholder="Entre com a URL", classes="input_cfg", type="text", id="url_input"),
-                    Horizontal(
-                        Label("Quant.", classes="label_cfg"),
-                        Input(placeholder="", classes="input_cfg var1", type="number", id="qtd_input"),
-                        classes="horizontalSmall"
-                    ),
-                    classes="vertical_cfg"
+        with Vertical(classes="run-container") as run:
+            run.border_title = "Run"
+            yield Vertical(
+                self.preset_input(
+                    texto_label="URL",
+                    texto_input="https://www.google.com",
+                    var_css="input_cfg var2",
+                    id_name="url_input",
+                    type_input="text",
                 ),
                 Horizontal(
                     Checkbox("Load", classes="Check", id="load_check"),
                     Checkbox("Isolar", classes="Check", id="isola_check"),
-                    classes="vertical1"
-                )
-                ,
-                Horizontal(classes="gambiarra"),  # mudar
-                Button("RUN", classes="ButtonRun", id="run")
-            ),
-
-            Rule(orientation="vertical", line_style="solid", classes="RuleSeparador"),
-
-            Vertical(
-                Rule(orientation="horizontal", line_style="solid", classes="RuleSeparador"),
-                Static("Configuracao", classes="titleLabel_cfg"),
-                Rule(orientation="horizontal", line_style="solid", classes="RuleSeparador"),
-
-                Horizontal(
-                    Label("Email", classes="label_cfg"),
-                    Input(placeholder="", classes="input_cfg", type="text", id="email_input"),
-                    classes="vertical_cfg"
+                    Button("RUN", classes="ButtonRun", id="run"),
                 ),
-                Horizontal(
-                    Label("Path", classes="label_cfg"),
-                    Input(placeholder="", classes="input_cfg", type="text", id="path_input"),
-                    classes="vertical_cfg",
-                ),
-                Horizontal(
-                    Label("Threads", classes="label_cfg"),
-                    Input(placeholder="", classes="input_cfg var1", type="number", id="threads_input"),
-                    classes="vertical_cfg",
-                ),
-                Horizontal(
-                    Horizontal(classes="gambiarra"),  # mudar
-                    SelectionList[bool](
-                        ("Imagem", "img", False),
-                        ("Video", "vid", False),
-                        ("Texto", "txt", False),
-                        ("Tudo", "all", False),
-                        classes="listCheck",
-                        id="types"
-
-                    ),
-                    Horizontal(classes="gambiarra"),  # mudar
-                ),
-                Horizontal(classes="gambiarra"),  # mudar
-                Button("Salvar Configuracao", classes="ButtonRun", id="config"),
             )
-        )
+
+        with Vertical(classes="info-container") as info:
+            info.border_title = "Infos"
+
+        with Vertical(classes="config-container") as config:
+            config.border_title = "config"
+            yield self.preset_input(
+                texto_label="email",
+                texto_input="testando",
+                var_css="a",
+                id_name="email_input",
+                type_input="text",
+            )
+            yield self.preset_input(
+                texto_label="Path",
+                texto_input="path",
+                var_css="a",
+                id_name="path_input",
+                type_input="text",
+            )
+
+            yield self.preset_input(
+                texto_label="Threads",
+                texto_input="Threads",
+                var_css="var1",
+                id_name="threads_input",
+                type_input="integer",
+            )
+
+            with Horizontal():
+                yield SelectionList[bool](
+                    ("Imagem", "img", False),
+                    ("Video", "vid", False),
+                    ("Texto", "txt", False),
+                    ("Tudo", "all", False),
+                    classes="listCheck",
+                    id="types",
+                )
+
+                yield Button(
+                    "Salvar Configuracao", classes="ButtonRun", id="config"
+                )
 
         yield Footer(name="Footer")
 
-    def on_mount(self):
-        cfg,_ = sh.load_cfg()
-        t = cfg['threads']
+    @staticmethod
+    def preset_input(
+        texto_label: str,
+        texto_input: str,
+        var_css: str,
+        id_name: str,
+        type_input,
+    ) -> Horizontal:
 
-        self.query_one("#email_input", Input).value = cfg['email']
+        inp = Horizontal(
+            Label(content=texto_label, classes="label_cfg"),
+            Input(
+                texto_input,
+                classes=var_css,
+                type=type_input,
+                id=id_name,
+            ),
+            classes="horizontalInput",
+        )
+        return inp
+
+    def on_mount(self):
+        cfg = sh.load_cfg()
+        t = cfg["threads"]
+
+        self.query_one("#email_input", Input).value = cfg["email"]
         self.query_one("#threads_input", Input).value = str(t)
-        self.query_one("#path_input", Input).value = cfg['path']
+        self.query_one("#path_input", Input).value = cfg["path"]
         selection_list = self.query_one("#types", SelectionList)
 
-        if cfg['img'] == "True":
+        if cfg["img"] == "True":
             selection_list.select("img")
-        if cfg['video'] == "True" :
+        if cfg["video"] == "True":
             selection_list.select("vid")
-        if cfg['text'] == "True" :
+        if cfg["text"] == "True":
             selection_list.select("txt")
 
-    #funcoes dos botoes da interface
+    # funcoes dos botoes da interface
     def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == "config":
             email = self.query_one("#email_input", Input).value
@@ -117,40 +143,41 @@ class ui(App):
             vid = False
             txt = False
             all_opx = False
-            for i in list_selection.selected:
-                if i == "img":
-                    img = True
-                if i == "vid":
-                    vid = True
-                if i == "txt":
-                    txt = True
-                if i == "all":
-                    all_opx = True
+            if os.path.exists(path):
+                for i in list_selection.selected:
+                    if i == "img":
+                        img = True
+                    if i == "vid":
+                        vid = True
+                    if i == "txt":
+                        txt = True
+                    if i == "all":
+                        all_opx = True
 
-            sh.save_cfg(threads=threads,
-                        email=email,
-                        path=path,
-                        img=img,
-                        videos=vid,
-                        text=txt,
-                        all=all_opx)
+                sh.save_cfg(
+                    threads=threads,
+                    email=email,
+                    path=path,
+                    img=img,
+                    videos=vid,
+                    text=txt,
+                    all=all_opx,
+                )
+            else:
+                screen = ErrorScreen("Diretorio Inexistente")
+                self.push_screen(screen)
 
         if event.button.id == "run":
-            qtd = self.query_one("#qtd_input", Input).value
             url = self.query_one("#url_input", Input).value
-            cfg, _ = sh.load_cfg()
             isolation = self.query_one("#isola_check", Checkbox).value
             load = self.query_one("#load_check", Checkbox).value
-            screen = ProcessScreen(qtd,url,cfg,isolation,load)
-            self.push_screen(screen)
+            try:
+                r = requests.get(url)
+            except Exception as e:
+                screen = ErrorScreen(f"{e}")
+                self.push_screen(screen)
+            else:
+                cfg = sh.load_cfg()
 
-
-    #binding para salvar e sair (falta implementar)
-    def action_save_quit(self) -> None:
-        self.exit()
-
-    # binding para pausar (falta implementar)
-    def action_pause(self) -> None:
-        pass
-
-
+                screen = ProcessScreen(url, cfg, isolation, load)
+                self.push_screen(screen)

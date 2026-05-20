@@ -1,0 +1,77 @@
+$cor-primaria: black;
+$cor-secundaria: gray;
+
+Screen{
+    layout: grid;
+    grid-size:2 2;
+    background: black;
+    grid-rows:1fr 2fr
+
+}
+
+.run-container{
+    padding:1;
+    border: round gray;
+    height:100%;
+    width:100% ;
+    column-span:1;
+    row-span:1;
+}
+
+.config-container{
+    padding:1;
+    border: round $cor-secundaria;
+    height:100%;
+    width:100% ;
+    column-span:1;
+    row-span:1;
+}
+
+.info-container{
+    padding:1;
+    border: round $cor-secundaria;
+    height:100%;
+    width:100%;
+    column-span:1;
+    row-span:2;
+}
+
+Input
+{
+    margin:0;
+    border:round $cor-secundaria;
+    height:3;
+    width:70%;
+}
+Input.var1
+{
+  width:10%;
+}
+
+Vertical
+{
+    align:center middle;
+}
+
+Label
+{   border:round $cor-secundaria;
+    content-align:center middle;
+    margin-left:2;
+    height:auto;
+    width:10;
+    align:center middle;
+}
+.horizontalInput
+{
+    width:100%;
+}
+SelectionList
+{
+    width:20;
+}
+Button{
+    border:round white;
+    content-align:center middle;
+    height:3;
+    margin-left:1;
+  }

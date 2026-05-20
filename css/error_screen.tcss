@@ -1,0 +1,29 @@
+ErrorScreen
+{
+    content-align: center middle;
+    align: center middle;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.QuadradoModal {
+
+    border: heavy $accent;
+    padding: 1;
+    width: 1000;
+
+    height: 20;
+    align: center middle;
+}
+.ButtonErro
+{
+    dock:bottom;
+    margin-top:1;
+    background:red;
+    width:10;
+    align: center middle;
+}
+.Labelerro
+{
+    width:100%;
+    height:100%;
+}
