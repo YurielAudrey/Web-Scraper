@@ -8,7 +8,14 @@ Screen{
     grid-rows:1fr 2fr
 
 }
-
+.spacer
+{
+    height:100%;
+}
+.listCheck
+{
+    height:auto;
+}
 .run-container{
     padding:1;
     border: round gray;

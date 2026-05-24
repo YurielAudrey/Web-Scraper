@@ -1,21 +1,35 @@
-from jedi.api import classes
+import asyncio
+import time
+
+from textual_plotext import PlotextPlot
+from textual.errors import TextualError
 from textual.screen import Screen
 from textual import on, work
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Header, Footer, Rule, Label, DataTable, RichLog
+from textual.widgets.data_table import (
+    CellDoesNotExist,
+    RowDoesNotExist,
+    ColumnDoesNotExist,
+)
 
-from core import UiUpdate as uup
-from core import engine as e
+
+from src import UiUpdate as uup
+from src import engine as e
 
 
 class ProcessScreen(Screen):
     def __init__(self, url, cfg, isolation, load=False):
         super().__init__()
         self.url = url
+
         self.cfg = cfg
         self.isolation = isolation
         self.load = load
-        self.engine_inst = None
+        self.engine_inst: e.engine
+        self.historico_x = []
+        self.historico_down = []
+        self.historico_url = []
         self.infos = {
             "Email": self.cfg["email"],
             "Threads": self.cfg["threads"],
@@ -23,6 +37,24 @@ class ProcessScreen(Screen):
             "Path": self.cfg["path"],
             "Url Inicial": self.url,
         }
+        title = "Horus"
+        version = "1.0"
+
+        github_url = "https://github.com/YurielAudrey/Horus"
+        ua = {
+            "User-Agent": f"{title}/{version} ({github_url}; {self.cfg['email']})Request/2.32.5"
+        }
+
+        def update_ui(concluida, pendente, total, message, threads):
+            self.post_message(
+                uup.UiUpdate(concluida, pendente, total, message, threads)
+            )
+
+        self.engine_inst = e.engine(
+            self.url, self.cfg, self.isolation, self.load, ua, update_ui
+        )
+        self.columns_threads = {}
+        self.set_interval(2.0, self.prot)
 
     BINDINGS = [
         ("ctrl+s", "save_quit", "salvar e fechar"),
@@ -34,22 +66,31 @@ class ProcessScreen(Screen):
     def compose(self):
 
         yield Header()
-        with Horizontal(classes="tables-container") as tables:
+        with Horizontal(classes="tables") as tables:
             tables.border_title = "Tables"
-            yield DataTable(id="info_table", classes="info-table")
-            yield DataTable(id="down_table", classes="down-table")
-
+            container_t = Horizontal(
+                DataTable(id="info_table", classes="info-table"),
+                classes="tables_container",
+            )
+            container_t.border_title = "infos"
+            yield container_t
+            container_d = Horizontal(
+                DataTable(id="down_table", classes="down-table"),
+                classes="tables_container",
+            )
+            container_d.border_title = "Processados"
+            yield container_d
         with Horizontal(classes="thr-container") as threads:
             container_1 = Horizontal(
-                DataTable(id="url_threads", classes="threads_table"),
+                DataTable(id="threads_table", classes="threads_table"),
                 classes="threads-container",
             )
-            container_1.border_title = "Threads url"
+            container_1.border_title = "Threads"
             container_2 = Horizontal(
-                DataTable(id="down_threads", classes="threads_table"),
-                classes="threads-container",
+                PlotextPlot(id="plt", classes="plotext"),
+                classes="prot-container",
             )
-            container_2.border_title = "Threads Downloads"
+            container_2.border_title = "Graphic"
 
             yield container_1
             yield container_2
@@ -69,12 +110,12 @@ class ProcessScreen(Screen):
         down.add_column("Concluida", key="ok")
         down.add_column("Restante", key="rest")
         down.add_column("Total", key="total")
-        rows = {
+        down_rows = {
             "URL": "row_url",
             "imagens": "row_img",
             "videos": "row_vid",
         }
-        for label, value in rows.items():
+        for label, value in down_rows.items():
             down.add_row(label, "0", "0", "0", key=value)
 
         info = self.query_one("#info_table", DataTable)
@@ -82,6 +123,16 @@ class ProcessScreen(Screen):
         info.add_column("Value", key="value")
         for label, value in self.infos.items():
             info.add_row(label, value)
+
+        threads = self.query_one("#threads_table", DataTable)
+        self.columns_threads = {
+            "id": "id_column",
+            "Name": "name_column",
+            "Categoria": "cat_column",
+            "Status": "status_column",
+        }
+        for label, value in self.columns_threads.items():
+            threads.add_column(label, key=value)
 
         self.start_run()
 
@@ -91,24 +142,54 @@ class ProcessScreen(Screen):
     def action_pause(self) -> None:
         pass
 
+    def prot(self):
+
+        wid_plt = self.query_one(PlotextPlot)
+        plt = wid_plt.plt
+
+        plt.ylabel("Páginas Processadas")
+
+        try:
+            down_count, url_count = self.engine_inst.rate_value()
+            self.historico_down.append(down_count)
+            self.historico_url.append(url_count)
+
+            plt.clear_data()
+            plt.clear_figure()
+            plt.xticks(list(""))
+
+            self.historico_x.append(len(self.historico_x) + 1)
+
+            if len(self.historico_x) > 30:
+                self.historico_x.pop(0)
+                self.historico_down.pop(0)
+                self.historico_url.pop(0)
+
+            plt.plot(
+                self.historico_x,
+                self.historico_down,
+                label="Downloads",
+                color="green",
+                style="void",
+                marker="braille",
+            )
+            plt.plot(
+                self.historico_x,
+                self.historico_url,
+                label="URLs",
+                color="blue",
+                style="void",
+                marker="braille",
+            )
+
+            wid_plt.refresh()
+
+        except Exception as e:
+            pass
+
     @work(thread=True)
     def start_run(self):
-        title = "Horus"
-        version = "1.0"
 
-        github_url = "https://github.com/YurielAudrey/Horus"
-        ua = {
-            "User-Agent": f"{title}/{version} ({github_url};"
-            f" {self.cfg['email']})"
-            "Request/2.32.5"
-        }
-
-        def update_ui(p, r, t, m):
-            self.post_message(uup.UiUpdate(p, r, t, m))
-
-        self.engine_inst = e.engine(
-            self.url, self.cfg, self.isolation, self.load, ua, update_ui
-        )
         self.engine_inst.start()
 
     @on(uup.UiUpdate)
@@ -124,13 +205,30 @@ class ProcessScreen(Screen):
             if i != "":
                 log.write(i)
 
-        for key_engine, key_tabela in tipos.items():
+        for key_dict, key_row in tipos.items():
             table = self.query_one("#down_table", DataTable)
 
-            valor_concluido = message.concluida.get(key_engine, [])
-            valor_pendente = message.pendente.get(key_engine, 0)
-            valor_total = message.total.get(key_engine, 0)
+            valor_concluido = message.concluida.get(key_dict, [])
+            valor_pendente = message.pendente.get(key_dict, 0)
+            valor_total = message.total.get(key_dict, 0)
 
-            table.update_cell(key_tabela, "ok", str(valor_concluido))
-            table.update_cell(key_tabela, "rest", str(valor_pendente))
-            table.update_cell(key_tabela, "total", str(valor_total))
+            table.update_cell(key_row, "ok", str(valor_concluido))
+            table.update_cell(key_row, "rest", str(valor_pendente))
+            table.update_cell(key_row, "total", str(valor_total))
+
+        table = self.query_one("#threads_table", DataTable)
+        thread_infos = message.threads_info
+
+        for info in thread_infos:
+            id_thread = str(info["id"])
+            name = str(info["name"])
+            cat = str(info["Categoria"])
+            status = str(info["status"])
+            try:
+                table.update_cell(name, "id_column", id_thread)
+                table.update_cell(name, "name_column", name)
+                table.update_cell(name, "cat_column", cat)
+                table.update_cell(name, "status_column", status)
+
+            except CellDoesNotExist:
+                table.add_row(id_thread, name, cat, status, key=name)

@@ -14,7 +14,7 @@ class ErrorScreen(ModalScreen):
 
     def compose(self) -> ComposeResult:
 
-        with Vertical(classes="QuadradoModal"):
+        with Vertical(classes="messageErro"):
             yield Label(content=self.message, classes="LabelErro")
             yield Button(label="OK", id="ok", classes="ButtonErro")
 

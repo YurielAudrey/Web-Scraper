@@ -1,6 +1,9 @@
 $cor-primaria: black;
 $cor-secundaria: gray
 
+.tables_container{
+    border:round $cor-secundaria;
+}
 Screen
 {
     layout:grid;
@@ -12,14 +15,28 @@ Screen
 }
 .threads-container
 {
+    width:1fr;
     border:round $cor-secundaria;
     row-span:1;
     column-span:3;
     margin:0;
 }
-.tables-container
+.prot-container
 {
+    width:2fr;
     border:round $cor-secundaria;
+    row-span:1;
+    column-span:3;
+    margin:0;
+}
+.plotext
+{
+    width:100%;
+    height:100%;
+}
+.tables
+{
+
     row-span:1;
     column-span:3;
     margin:0;

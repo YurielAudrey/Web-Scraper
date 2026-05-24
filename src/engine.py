@@ -4,12 +4,12 @@ import requests
 from urllib.parse import urlparse
 from pathlib import Path
 
-import core.network_manager as nm
-import core.thread_manager as tm
-import core.queue_manager as qm
-import core.storage_handler as sh
-import core.oldmanager as oh
-import core.utils as u
+import src.network_manager as nm
+import src.ThreadManager as tm
+import src.queue_manager as qm
+import src.storage_handler as sh
+import src.OldManager as oh
+import src.utils as u
 
 ENCODING = "utf-8"
 
@@ -26,13 +26,13 @@ class engine:
     ):
 
         self.callback = callback_func
-        self.load = load
+        self.load_bool = load
         self.session = requests.Session()
         self.cfg = config
         self.isolation = isolation
         self.ua = ua
         self.url_inicial = url
-        self.threads = tm.Threads(self.cfg["threads"])
+        self.threads = tm.ThreadManager(self.cfg["threads"])
         self.queue = qm.queue_manager()
         self.page_old = oh.OldManager(
             path=self.cfg["path"], name_file="page_old"
@@ -41,11 +41,13 @@ class engine:
         self.vid_old = oh.OldManager(self.cfg["path"], "vid_old")
         self.log_cache = []
         self.stats_data = set()
+        self.count_down = 0
+        self.count_url = 0
 
     # regula o delay entre requisicoes caso retorne code 429
     def request_code_manager(self, code: int):
         if code == 429:
-            self.queue.add_delay(1)
+            self.queue.add_delay(0.1)
             self.add_log(
                 "[WARN]Requisicao Bloqueada por excesso de requisicoes"
             )
@@ -81,14 +83,16 @@ class engine:
             name="td_",
             path=self.cfg["path"],
         )
+
         self.threads.start_thr()
         self.threads.join_thr()
 
     # comeca capturar as urls
     def manager_list(self, **kwargs) -> None:
         while True:
-            url = self.queue.get_url()
 
+            url = self.queue.get_url()
+            self.count_url += 1
             infos = nm.verify_robot(
                 self.url_inicial, self.session, url, self.ua, self.isolation
             )
@@ -110,28 +114,46 @@ class engine:
                     img_new.clear()
                     page_new.clear()
                     vid_new.clear()
-                    if self.callback:
-                        c, p, t = self.att_var()
-                        m = self.log_cache
-                        self.callback(c, p, t, m)
+                    self.call_back()
 
                     if self.queue.page_queue.qsize() == 0:
                         self.add_log("[WARN]Sem Mais Urls para Processar")
+
+    def call_back(self):
+        if self.callback:
+            concluida, pendente, total = self.att_var()
+            message = self.log_cache
+            threads_info = self.threads.get_info()
+            self.callback(concluida, pendente, total, message, threads_info)
+            self.log_cache.clear()
 
     # realiza o download dos arquivos
     def download(self, **kwargs) -> None:
         path = kwargs["path"]
         path = Path(path)
+
         while True:
             get = self.queue.get_file()
             url, tipo = next(get)
+
             if self.img_old.verify(url):
                 name_file = nm.find_name(url)
                 response = self.session.get(url, headers=self.ua)
                 code = response.status_code
-                if code == 200:
-                    self.request_code_manager(code)
+
+                if code == 404:
+                    self.add_log(f"[INFO]Pagina retornou 404:{url}")
+                    if tipo == "img":
+                        self.img_old.add_item(url)
+                        pass
+                    elif tipo == "vid":
+                        self.vid_old.add_item(url)
+                        pass
+
+                else:
+                    self.count_down += 1
                     try:
+                        self.request_code_manager(code)
                         sh.save_file(name_file, path, response)
                     except Exception as e:
                         self.add_log(f"[WARN]Exception : {e}")
@@ -140,12 +162,6 @@ class engine:
                     elif tipo == "vid":
                         self.vid_old.add_item(url)
 
-                else:
-                    self.add_log("[INFO]Pagina retornou 404")
-                    if tipo == "img":
-                        self.img_old.add_item(url)
-                    elif tipo == "vid":
-                        self.vid_old.add_item(url)
                 if self.queue.img_queue.qsize() == 0:
                     self.add_log("[INFO]Sem Mais Arquivos para baixar")
 
@@ -154,7 +170,7 @@ class engine:
         os.system("exit")
 
     def load(self):
-        if self.load:
+        if self.load_bool:
             self.add_log("[INFO]Carregando Urls Salvas")
             url = sh.load_url(self.cfg["path"], "url_save")
             img = sh.load_url(self.cfg["path"], "img_save")
@@ -219,3 +235,10 @@ class engine:
             "txt": 0,
         }
         return concluida, pendente, total
+
+    def rate_value(self):
+        down = self.count_down
+        url = self.count_url
+        self.count_url = 0
+        self.count_down = 0
+        return down, url

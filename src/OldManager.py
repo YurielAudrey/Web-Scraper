@@ -1,4 +1,4 @@
-import core.storage_handler as sh
+import src.storage_handler as sh
 
 
 class OldManager:

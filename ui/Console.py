@@ -15,9 +15,11 @@ from textual.widgets import (
     SelectionList,
 )
 
-import core.storage_handler as sh
+import src.storage_handler as sh
 from ui.ErrorScreen import ErrorScreen
 from ui.ProcessScreen import ProcessScreen
+
+site_inicial = "https://pt.wikipedia.org/wiki/Portal:Biologia"
 
 
 class Ui(App):
@@ -39,7 +41,7 @@ class Ui(App):
             yield Vertical(
                 self.preset_input(
                     texto_label="URL",
-                    texto_input="https://www.google.com",
+                    texto_input=site_inicial,
                     var_css="input_cfg var2",
                     id_name="url_input",
                     type_input="text",
@@ -79,19 +81,19 @@ class Ui(App):
                 type_input="integer",
             )
 
-            with Horizontal():
+            with Horizontal(classes="listCheck"):
                 yield SelectionList[bool](
                     ("Imagem", "img", False),
                     ("Video", "vid", False),
                     ("Texto", "txt", False),
                     ("Tudo", "all", False),
-                    classes="listCheck",
                     id="types",
                 )
 
                 yield Button(
                     "Salvar Configuracao", classes="ButtonRun", id="config"
                 )
+            yield Horizontal(id="spacer")
 
         yield Footer(name="Footer")
 

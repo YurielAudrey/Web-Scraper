@@ -5,25 +5,23 @@ ErrorScreen
     background: rgba(0, 0, 0, 0.6);
 }
 
-.QuadradoModal {
+.messageErro {
 
     border: heavy $accent;
     padding: 1;
-    width: 1000;
-
-    height: 20;
+    width:auto;
+    height: auto;
     align: center middle;
 }
 .ButtonErro
 {
-    dock:bottom;
+    height:100;
+    width:100;
     margin-top:1;
     background:red;
-    width:10;
-    align: center middle;
 }
-.Labelerro
+.LabelErro
 {
-    width:100%;
+    width:auto;
     height:100%;
 }
